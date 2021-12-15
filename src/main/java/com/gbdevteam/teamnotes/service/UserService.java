@@ -6,6 +6,7 @@ import com.gbdevteam.teamnotes.dto.UserRegAuthDto;
 import com.gbdevteam.teamnotes.model.Role;
 import com.gbdevteam.teamnotes.model.User;
 import com.gbdevteam.teamnotes.repository.UserRepository;
+import com.gbdevteam.teamnotes.util.JwtTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -20,6 +21,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import javax.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
@@ -34,6 +36,7 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final RoleService roleService;
     private final EmailSender emailSender;
+    private final JwtTokenUtil jwtTokenUtil;
 
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -97,8 +100,12 @@ public class UserService implements UserDetailsService {
         UserDetails userDetails = loadUserByUsername(user.getEmail());
         Authentication authenticatedUser = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), userDetails.getPassword(), userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authenticatedUser);
+        String token = jwtTokenUtil.generateToken(userDetails);
+
         generateConfirmUUID(user);
         emailSender.sendEmail(user.getEmail(), user.getConfirmUUID());
+
+        //                return token;
         return convertToDTO(user);
     }
 
@@ -114,6 +121,8 @@ public class UserService implements UserDetailsService {
                 UserDetails userDetails = loadUserByUsername(user.getEmail());
                 Authentication authenticatedUser = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), userDetails.getPassword(), userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authenticatedUser);
+                String token = jwtTokenUtil.generateToken(userDetails);
+//                return token;
                 return true;
             }
         }
